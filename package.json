@@ -1,0 +1,76 @@
+{
+	"name": "text_to_template",
+	"displayName": "Text To Template",
+	"description": "通过正则提取文字为模板",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.62.0"
+	},
+	"main": "./out/extension.js",
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:TextToTemplate.translate"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "TextToTemplate.translate",
+				"title": " 转换为 Const",
+				"shortTitle": "Translate to Const",
+				"when": "editorHasSelection"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"command": "TextToTemplate.translate",
+					"group": "z_commands",
+					"when": "editorHasSelection"
+				}
+			]
+		},
+		"configuration": {
+			"title": "TextToTemplate",
+			"properties": {
+				"TextToTemplate.RegExp": {
+					"type": "string",
+					"default": "((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))",
+					"description": "匹配文本的正则表达式：groups.value 表示数字部分，groups.label 表示汉字部分"
+				},
+				"TextToTemplate.TsAsConst": {
+					"type": "boolean",
+					"default": true,
+					"description": "在 TS 文件中生成 as const"
+				},
+				"TextToTemplate.Export": {
+					"type": "boolean",
+					"default": true,
+					"description": "生成 export"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "yarn run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "yarn run compile && yarn run lint",
+		"lint": "eslint src --ext ts",
+		"test": "node ./out/test/runTest.js"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.4",
+		"@types/mocha": "^9.0.0",
+		"@types/node": "14.x",
+		"@types/vscode": "^1.62.0",
+		"@typescript-eslint/eslint-plugin": "^5.1.0",
+		"@typescript-eslint/parser": "^5.1.0",
+		"@vscode/test-electron": "^1.6.2",
+		"eslint": "^8.1.0",
+		"glob": "^7.1.7",
+		"mocha": "^9.1.3",
+		"typescript": "^4.4.4"
+	}
+}
