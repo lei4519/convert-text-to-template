@@ -32,12 +32,6 @@ ${exportToken}const $1_TEXT = {
     .map((r, i) => `[$1.\${${i + 2}}]: ${JSON.stringify(r.label)}`)
     .join(',\n\t')}
 }${constToken}\n$0`
-  //   return `const \${1:VAR_NAME} = {
-  //   ${record.map((r, i) => `\${${i + 2}:${r.var}}: ${r.value}`).join(',\n\t')}
-  // }
-  // const $1_TEXT = {
-  //   ${record.map(r => `${r.value}: ${JSON.stringify(r.label)}`).join(',\n\t')}
-  // }\n$0`
 }
 
 export const translate = (

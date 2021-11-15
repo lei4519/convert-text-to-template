@@ -1,7 +1,7 @@
 {
 	"name": "text_to_template",
 	"displayName": "Text To Template",
-	"description": "通过正则提取文字为模板",
+	"description": "通过正则提取文字转换为模板。",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.62.0"
@@ -34,9 +34,19 @@
 		"configuration": {
 			"title": "TextToTemplate",
 			"properties": {
+				"TextToTemplate.Template": {
+					"type": "object",
+					"description": "An example bool object setting.",
+					"additionalProperties": {
+						"type": "string"
+					},
+					"default": {
+						"((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))": "() => {}"
+					}
+				},
 				"TextToTemplate.RegExp": {
 					"type": "string",
-					"default": "((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))",
+					"default": "",
 					"description": "匹配文本的正则表达式：groups.value 表示数字部分，groups.label 表示汉字部分"
 				},
 				"TextToTemplate.TsAsConst": {

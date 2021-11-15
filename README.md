@@ -1,8 +1,40 @@
 # TextToTemplate README
 
-将枚举文本转换为 ts/js 的 const 枚举结构
+通过正则匹配文本，并转换为模板（支持自定义模板）。
 
-默认的正则表达式：`/((?<num>\d+)[^\u4e00-\u9fa5]*?(?<val>[\u4e00-\u9fa5][^\d]*))/g`
+## 默认的正则表达式
+
+```js
+/((?<num>\d+)[^\u4e00-\u9fa5]*?(?<val>[\u4e00-\u9fa5][^\d]*))/g
+```
+
+## 默认的模板
+
+`record` 表示匹配到的文本数组，`var`、`value` 是正则捕获组的名称。
+
+其余的参数是插件的配置项。
+
+返回的是 [vscode snippet](https://code.visualstudio.com/api/language-extensions/snippet-guide)
+
+```js
+(record: MatchRecord[], isTS: boolean, isExport: boolean) => {
+  if (record.length === 0) {
+    return ''
+  }
+
+  const exportToken = isExport ? 'export ' : ''
+  const constToken = isTS ? ' as const' : ''
+
+  return `\n${exportToken}const \${1:VAR_NAME} = {
+  ${record.map((r, i) => `\${${i + 2}:${r.var}}: ${r.value}`).join(',\n\t')}
+}${constToken}
+${exportToken}const $1_TEXT = {
+  ${record
+    .map((r, i) => `[$1.\${${i + 2}}]: ${JSON.stringify(r.label)}`)
+    .join(',\n\t')}
+}${constToken}\n$0`
+}
+```
 
 ## Features
 
