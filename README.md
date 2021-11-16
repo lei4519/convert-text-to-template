@@ -1,4 +1,4 @@
-# TextToTemplate README
+# ConvertTextToTemplat README
 
 通过正则匹配文本，并转换为模板（支持自定义模板）。
 
@@ -36,6 +36,19 @@ ${exportToken}const $1_TEXT = {
 }
 ```
 
+## 模板配置
+
+ 配置项 `ConvertTextToTemplat.Template`
+
+ 配置对象的键值对，键格式为 `模板名称@正则表达式`，值为返回模板的函数体字符串（new Function）
+
+```js
+// 默认配置, 函数体字符串经过了压缩，实际就是上面的默认模板函数体
+{
+  "default@((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))": "(record,isTS,isExport)=>{if(record.length===0){return''}const exportToken=isExport?'export ':''const constToken=isTS?' as const':''return`\\n${exportToken}const\\${1:VAR_NAME}={${record.map((r,i)=>`\\${${i+2}:${r.var}}:${r.value}`).join(',\\n\\t')}}${constToken}${exportToken}const $1_TEXT={${record.map((r,i)=>`[$1.\\${${i+2}}]:${JSON.stringify(r.label)}`).join(',\\n\\t')}}${constToken}\\n$0`}"
+}
+```
+
 ## Features
 
 ![setup](setup.gif)
@@ -44,9 +57,9 @@ ${exportToken}const $1_TEXT = {
 
 This extension contributes the following settings:
 
-* `TextToTemplate.RegExp`:  自定义匹配文本的正则表达式：`groups.value` 表示数字部分，`groups.label` 表示汉字部分
-* `TextToTemplate.Export`:  生成 `export`
-* `TextToTemplate.TsAsConst`: TS 文件中生成 `as const`
+* `ConvertTextToTemplat.Template`:  自定义匹配文本的正则表达式：`groups.value` 表示数字部分，`groups.label` 表示汉字部分
+* `ConvertTextToTemplat.Export`:  生成 `export`
+* `ConvertTextToTemplat.TsAsConst`: TS 文件中生成 `as const`
 
 ## Known Issues
 

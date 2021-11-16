@@ -1,60 +1,62 @@
 {
-	"name": "text_to_template",
-	"displayName": "Text To Template",
+	"name": "convert-text-to-templat",
+	"displayName": "Convert Text To Templat",
 	"description": "通过正则提取文字转换为模板。",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.62.0"
 	},
+	"keywords": [
+		"text",
+		"txt",
+		"template",
+		"transform",
+		"convert"
+	],
 	"main": "./out/extension.js",
 	"categories": [
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:TextToTemplate.translate"
+		"onCommand:ConvertTextToTemplat.translate"
 	],
 	"contributes": {
 		"commands": [
 			{
-				"command": "TextToTemplate.translate",
-				"title": " 转换为 Const",
-				"shortTitle": "Translate to Const",
+				"command": "ConvertTextToTemplat.translate",
+				"title": "Convert Text To Template",
+				"shortTitle": "Convert Text to Template",
 				"when": "editorHasSelection"
 			}
 		],
 		"menus": {
 			"editor/context": [
 				{
-					"command": "TextToTemplate.translate",
+					"command": "ConvertTextToTemplat.translate",
 					"group": "z_commands",
 					"when": "editorHasSelection"
 				}
 			]
 		},
 		"configuration": {
-			"title": "TextToTemplate",
+			"title": "ConvertTextToTemplat",
 			"properties": {
-				"TextToTemplate.Template": {
+				"ConvertTextToTemplat.Template": {
 					"type": "object",
-					"description": "An example bool object setting.",
+					"description": "配置转换模板",
 					"additionalProperties": {
 						"type": "string"
 					},
 					"default": {
-						"((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))": "() => {}"
+						"default@((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))": "(record,isTS,isExport)=>{if(record.length===0){return''}const exportToken=isExport?'export ':''const constToken=isTS?' as const':''return`\\n${exportToken}const\\${1:VAR_NAME}={${record.map((r,i)=>`\\${${i+2}:${r.var}}:${r.value}`).join(',\\n\\t')}}${constToken}${exportToken}const $1_TEXT={${record.map((r,i)=>`[$1.\\${${i+2}}]:${JSON.stringify(r.label)}`).join(',\\n\\t')}}${constToken}\\n$0`}"
 					}
 				},
-				"TextToTemplate.RegExp": {
-					"type": "string",
-					"default": "",
-					"description": "匹配文本的正则表达式：groups.value 表示数字部分，groups.label 表示汉字部分"
-				},
-				"TextToTemplate.TsAsConst": {
+				"ConvertTextToTemplat.TsAsConst": {
 					"type": "boolean",
 					"default": true,
 					"description": "在 TS 文件中生成 as const"
 				},
-				"TextToTemplate.Export": {
+				"ConvertTextToTemplat.Export": {
 					"type": "boolean",
 					"default": true,
 					"description": "生成 export"

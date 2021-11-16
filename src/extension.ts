@@ -13,7 +13,7 @@ const errorTips = (txt: string) => {
 
 export function activate(context: ExtensionContext) {
   const disposable = commands.registerCommand(
-    'TextToTemplate.translate',
+    'ConvertTextToTemplat.translate',
     () => {
       const editor = window.activeTextEditor
 
@@ -29,9 +29,40 @@ export function activate(context: ExtensionContext) {
         return errorTips('未选中文本')
       }
 
-      const config = workspace.getConfiguration('TextToTemplate')
+      const config = workspace.getConfiguration('ConvertTextToTemplat')
+
+      const template: Record<string, string> = config.get('Template', {})
+
+      const keys = Object.keys(template)
+
+      if (keys.length === 0) {
+        return errorTips('未配置模板')
+      }
 
       let reg
+
+      const map = keys.map((key, i) => {
+        const splitIdx = key.indexOf('@')
+        const r = {
+          name: '',
+          reg: null as RegExp | null,
+          fn: (() => '') as Function
+        }
+        if (splitIdx === -1) {
+          r.name = `untitle${i}`
+          try {
+            r.reg = new RegExp(key)
+          } catch { }
+        } else {
+          r.name = key.substring(0, splitIdx)
+          try {
+            r.reg = new RegExp(key.substring(splitIdx + 1))
+          } catch { }
+        }
+        try {
+          r.fn = new Function(template[key])
+        } catch {}
+      })
 
       try {
         reg = new RegExp(config.get('RegExp', ''), 'g')
