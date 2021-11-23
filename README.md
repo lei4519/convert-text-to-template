@@ -1,104 +1,103 @@
-# ConvertTextToTemplat README
+# ConvertTextToTemplate README
 
-通过正则匹配文本，并转换为模板（支持自定义模板）。
-
-## 默认的正则表达式
-
-```js
-/((?<num>\d+)[^\u4e00-\u9fa5]*?(?<val>[\u4e00-\u9fa5][^\d]*))/g
-```
-
-## 默认的模板
-
-`record` 表示匹配到的文本数组，`var`、`value` 是正则捕获组的名称。
-
-其余的参数是插件的配置项。
-
-返回的是 [vscode snippet](https://code.visualstudio.com/api/language-extensions/snippet-guide)
-
-```js
-(record: MatchRecord[], isTS: boolean, isExport: boolean) => {
-  if (record.length === 0) {
-    return ''
-  }
-
-  const exportToken = isExport ? 'export ' : ''
-  const constToken = isTS ? ' as const' : ''
-
-  return `\n${exportToken}const \${1:VAR_NAME} = {
-  ${record.map((r, i) => `\${${i + 2}:${r.var}}: ${r.value}`).join(',\n\t')}
-}${constToken}
-${exportToken}const $1_TEXT = {
-  ${record
-    .map((r, i) => `[$1.\${${i + 2}}]: ${JSON.stringify(r.label)}`)
-    .join(',\n\t')}
-}${constToken}\n$0`
-}
-```
-
-## 模板配置
-
- 配置项 `ConvertTextToTemplat.Template`
-
- 配置对象的键值对，键格式为 `模板名称@正则表达式`，值为返回模板的函数体字符串（new Function）
-
-```js
-// 默认配置, 函数体字符串经过了压缩，实际就是上面的默认模板函数体
-{
-  "default@((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))": "(record,isTS,isExport)=>{if(record.length===0){return''}const exportToken=isExport?'export ':''const constToken=isTS?' as const':''return`\\n${exportToken}const\\${1:VAR_NAME}={${record.map((r,i)=>`\\${${i+2}:${r.var}}:${r.value}`).join(',\\n\\t')}}${constToken}${exportToken}const $1_TEXT={${record.map((r,i)=>`[$1.\\${${i+2}}]:${JSON.stringify(r.label)}`).join(',\\n\\t')}}${constToken}\\n$0`}"
-}
-```
+通过正则匹配文本，并转换为模板（支持自定义正则和模板）。
 
 ## Features
 
 ![setup](setup.gif)
 
+
+## 默认的正则表达式
+
+```js
+// 匹配 [数字 非中文 中文] 格式
+/((?<value>\d+)[^\u4e00-\u9fa5]*?(?<label>[\u4e00-\u9fa5][^\d]*))/g
+```
+
+## 默认的转换模板
+
+```js
+// 文字 1 状态
+
+// 上面的文字会生成下面的代码
+
+export const VAR = {
+  var0: 1
+}
+
+export const VAR_TEXT = {
+  [VAR.var0]: '状态'
+}
+```
+
+## 自定义模板
+
+这个插件只负责正则匹配和模板字符串的生成，所以你可以自定义配置任何类型、语言的模板。
+
+注意 vscode 插件是 js 语言编写，所以正则和模板都是 js 语言的。
+
+进入 vscode 配置项： `ConvertTextToTemplate.Template`，进行模板配置
+
+此配置项是一个对象，对象的键中包含模板名称和正则表达式，对象值是模板字符串，下面一一细说
+
+### 键
+
+键由两部分组成：`模板名称@正则表达式`，由 `@` 符号进行分割。
+
+### 正则的编写
+
+打开 chrome 控制台，找到 console 面板，在里面尝试编写你的正则表达式
+
+![](https://gitee.com/lei451927/picture/raw/master/images/20211120144840.png)
+
+可能你没有 js 语言的基础，所以对于上面的代码简单说一下
+
+- 第一行语句自然是创建一个正则表达式的实例，详见[Regular](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_Expressions)
+- 第二行语句稍微复杂一点
+  - `'1 状态，2 状态，3 状态'.matchAll(r)` 会把字符串中的所有匹配项找出来，并返回一个 `Iterator`
+  - `[...Iterator]` 会把 `Iterator` 变为数组
+  - `.map(r => r.groups)` 将数组中每一项的 `groups` 提取出来，映射为另一数组
+  - 最后就是返回值所显示的部分，所有的匹配项数组 `groups`，**而这也正是模板中用到的 `groups`**
+
+一旦你编写测试好了正则表达式，就可以把对象的键构造出来了，比如模板名称叫 `default`，如下
+```
+{
+  "default@((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))": ""
+}
+```
+
+### 模板的编写
+
+模板的解析使用了 [underscore.template](https://underscorejs.org/#template)，所以你可以在里面使用相应的模板语法
+
+打开上面的网址，同样进入控制台，输入下面的代码，生成的字符串就是将会插入到编辑器中的字符。
+
+```js
+_.template(`export const \${1:VAR_NAME} = {
+<% groups.forEach(({value}, i) => { %>
+  \${<%= i + 2 %>:var<%= i %>}: <%= value %>,
+<% }); %>
+}
+
+export const $1_TEXT = {
+<% groups.forEach(({label}, i) => { %>
+  [$1.$<%= i + 2 %>]: <%= label %>,
+<% }); %>
+}`)({groups: [{label: "状态", value: 1}] })
+```
+
+字符会以 [vscode snippet](https://code.visualstudio.com/api/language-extensions/snippet-guide) 的形式插入到编辑器中，所以你可以写合法的 snippet 片段。
+
+一旦你写好了模板，就可以将其放入值的部分，以下就是默认模板的配置。
+
+```js
+{
+  "default@((?<value>\\d+)[^\\u4e00-\\u9fa5]*?(?<label>[\\u4e00-\\u9fa5][^\\d]*))": "export const ${1:VAR_NAME} = {\n<% groups.forEach(({value}, i) => { %>\t${<%= i + 2 %>:var<%= i %>}: <%= value %>,\n<% }); %>}\n\nexport const $1_TEXT = {\n<% groups.forEach(({label}, i) => { %>\t[$1.$<%= i + 2 %>]: \"<%= label.trim() %>\",\n<% }); %>}"
+}
+```
+
 ## Extension Settings
 
 This extension contributes the following settings:
 
-* `ConvertTextToTemplat.Template`:  自定义匹配文本的正则表达式：`groups.value` 表示数字部分，`groups.label` 表示汉字部分
-* `ConvertTextToTemplat.Export`:  生成 `export`
-* `ConvertTextToTemplat.TsAsConst`: TS 文件中生成 `as const`
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-<!-- ## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!** -->
+* `ConvertTextToTemplate.Template`:  自定义匹配文本的转换方式

@@ -4,8 +4,8 @@ import {
   commands,
   workspace,
   SnippetString,
-} from 'vscode'
-import { translate } from './translate'
+} from "vscode"
+import { Template, translate } from "./translate"
 
 const errorTips = (txt: string) => {
   window.showErrorMessage(txt)
@@ -13,12 +13,12 @@ const errorTips = (txt: string) => {
 
 export function activate(context: ExtensionContext) {
   const disposable = commands.registerCommand(
-    'ConvertTextToTemplat.translate',
+    "ConvertTextToTemplate.translate",
     () => {
       const editor = window.activeTextEditor
 
       if (!editor) {
-        return errorTips('未选中文本')
+        return errorTips("未选中文本")
       }
 
       const document = editor.document
@@ -26,67 +26,71 @@ export function activate(context: ExtensionContext) {
       const word = document.getText(selection)
 
       if (!word.trim()) {
-        return errorTips('未选中文本')
+        return errorTips("未选中文本")
       }
 
-      const config = workspace.getConfiguration('ConvertTextToTemplat')
+      const config = workspace.getConfiguration("ConvertTextToTemplate")
 
-      const template: Record<string, string> = config.get('Template', {})
+      const template: Record<string, string> = config.get("Template", {})
 
       const keys = Object.keys(template)
 
       if (keys.length === 0) {
-        return errorTips('未配置模板')
+        return errorTips("未配置模板")
       }
 
-      let reg
-
-      const map = keys.map((key, i) => {
-        const splitIdx = key.indexOf('@')
-        const r = {
-          name: '',
+      const templates: Template[] = keys.map((key, i) => {
+        const splitIdx = key.indexOf("@")
+        const r: Template = {
+          name: "",
           reg: null as RegExp | null,
-          fn: (() => '') as Function
+          template: template[key] || "",
         }
+
         if (splitIdx === -1) {
           r.name = `untitle${i}`
           try {
-            r.reg = new RegExp(key)
-          } catch { }
+            r.reg = new RegExp(key, "gms")
+          } catch {}
         } else {
           r.name = key.substring(0, splitIdx)
           try {
-            r.reg = new RegExp(key.substring(splitIdx + 1))
-          } catch { }
+            r.reg = new RegExp(key.substring(splitIdx + 1), "gms")
+          } catch {}
         }
-        try {
-          r.fn = new Function(template[key])
-        } catch {}
+        return r
       })
 
-      try {
-        reg = new RegExp(config.get('RegExp', ''), 'g')
-      } catch (error) {
-        return errorTips('正则表达式配置错误')
-      }
+      const promise =
+        templates.length === 1
+          ? Promise.resolve(templates[0])
+          : window
+              .showQuickPick(
+                templates.map(({ name }) => name),
+                { placeHolder: " Place choose convert template" }
+              )
+              .then((name) => {
+                return templates.find((t) => t.name === name)!
+              })
 
-      const asConst = config.get('TsAsConst', true)
+      promise.then((template) => {
+        if (!template.reg) {
+          return errorTips("所选模板正则表达式配置错误")
+        }
+        if (!template.template) {
+          return errorTips("所选模板，模板内容配置为空")
+        }
 
-      const snippet = translate(
-        word,
-        reg,
-        asConst && document.languageId.includes('typescript'),
-        config.get<boolean>('Export', true)
-      )
+        const snippet = translate(word, template)
+        if (!snippet?.trim()) {
+          return errorTips("未匹配成功")
+        }
 
-      if (!snippet.trim()) {
-        return errorTips('未匹配成功')
-      }
-
-      editor.insertSnippet(
-        new SnippetString(snippet),
-        selection.end.with(selection.end.line + 1, 0)
-      )
+        editor.insertSnippet(
+          new SnippetString(snippet),
+          selection.end.with(selection.end.line + 1, 0)
+        )
+      })
     }
   )
 

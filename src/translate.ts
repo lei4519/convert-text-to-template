@@ -1,42 +1,34 @@
-interface MatchRecord {
-  value: string
-  label: string
-  var: string
+import { template as _t } from "underscore"
+import { window } from "vscode"
+
+type Groups = Record<string, string>[]
+
+export interface Template {
+  name: string
+  reg: RegExp | null
+  template: string
 }
 
 const match = (txt: string, reg: RegExp) =>
   [...txt.matchAll(reg)].reduce((res, { groups }) => {
     if (groups) {
-      res.push({
-        value: groups.value,
-        label: groups.label.trim(),
-        var: 'var' + groups.value,
-      })
+      res.push(groups)
     }
     return res
-  }, [] as MatchRecord[])
+  }, [] as Groups)
 
-const gen = (record: MatchRecord[], isTS: boolean, isExport: boolean) => {
-  if (record.length === 0) {
-    return ''
+const gen = (groups: Groups, { template }: Template) => {
+  if (groups.length === 0) {
+    return ""
   }
-
-  const exportToken = isExport ? 'export ' : ''
-  const constToken = isTS ? ' as const' : ''
-
-  return `\n${exportToken}const \${1:VAR_NAME} = {
-  ${record.map((r, i) => `\${${i + 2}:${r.var}}: ${r.value}`).join(',\n\t')}
-}${constToken}
-${exportToken}const $1_TEXT = {
-  ${record
-    .map((r, i) => `[$1.\${${i + 2}}]: ${JSON.stringify(r.label)}`)
-    .join(',\n\t')}
-}${constToken}\n$0`
+  try {
+    return _t(template)({ groups })
+  } catch (e: any) {
+    window.showErrorMessage(`ConvertTextToTemplate Error: ${e.message || e}`)
+  }
 }
 
-export const translate = (
-  txt: string,
-  reg: RegExp,
-  isTS: boolean,
-  isExport: boolean
-) => gen(match(txt, reg), isTS, isExport)
+export const translate = (txt: string, template: Template) => {
+  const groups = match(txt, template.reg!)
+  return gen(groups, template)
+}
